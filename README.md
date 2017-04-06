@@ -1,7 +1,7 @@
 ---
 title: "Waste over Time"
 author: "V.M. van Straalen"
-date: "December 2, 2016"
+date: "April 6, 2017"
 output: html_document
 ---
 
@@ -43,7 +43,7 @@ The script has been designed that it can be easily extended to other types of pr
 # Installation
 **R**
 
-No R knowledge is necessary  to run this series of scripts. But R needs to be installed on your computer. For more information on how to install R see [R Installation and Administration](https://cran.r-project.org/doc/manuals/r-release/R-admin.html)
+No R knowledge is necessary to run this series of scripts. But R needs to be installed on your computer. For more information on how to install R see [R Installation and Administration](https://cran.r-project.org/doc/manuals/r-release/R-admin.html)
 
 In case you wish to see and understand all the calculations, knowledge of the R language is of course needed.
 
@@ -83,7 +83,7 @@ install.packages("data.table")
 The program can be run from the command line (Windows: cmd.exe, aka 'DOS box').
 
 To run the calculations for all countries, go to the folder of the scrips. Do this by using the CD command. For instance 'cd /d F:\Vincent\Mijn documenten\ewaste-master\scripts'.
-Then type the following text in the command editor
+Then type the following text in the command editor:  
 `Rscript main.R`
 
 Alternatively the above two commands could be performed at once with the command 'Rscript %EWASTE_SCRIPT_PATH%\main.R'
@@ -182,7 +182,7 @@ Script "00b_Prepare_International_Trade_data.R - Create international trade data
 
 <br>
 
-##  Estimation of confidential prodcom data.
+## Estimation of confidential prodcom data.
 Prodcom data contains many hidden values because of confidentiality. These confidential values are being estimated in script '01_Prodcom_confidentials.R'. 
 Input data or this script is:
 * 'tbl_data_pcc_conf.csv'
@@ -233,16 +233,16 @@ Additional data on number of inhabitants and a stratum code to group similar cou
 
 ### Manual corrections
 A number of manual corrections are being carried out. These result from the analysis of the automatic corrections. When there are a few years in a row with unreliable data, the automatic procedures cannot correct them.
-Some unreliable data is corrected using knowledge of the market.  For instance CRT TVs have not been sold in recent years, so they are set to 0.
+Some unreliable data is corrected using knowledge of the market. For instance CRT TVs have not been sold in recent years, so they are set to 0.
 
 <br>
 
 ### Solar panel data
-Data on solar panels (UNU_Key 0002) is taken from the Eurostat website. This data is included.  This data is only available in megawatts. We calculate the kilo's by assuming a number of kg's per megawatt and an average weight per panel. These values are around 100.000 kg per megawatt and 17 kg per panel, but they vary with every year.
+Data on solar panels (UNU_Key 0002) is taken from the Eurostat website. This data is included. This data is only available in megawatts. We calculate the kilo's by assuming a number of kg's per megawatt and an average weight per panel. These values are around 100.000 kg per megawatt and 17 kg per panel, but they vary with every year.
 
 ### Automatic corrections for all UNU_Keys, countries and years
 #### Remove unreliable data by comparing with other years from the same Country and product category
-The outlier detection is done using the Median Absolute Deviation (MAD).  For this outlier detection method, the median of the data (all years of a specific country and product category) is calculated. Then, the difference is calculated between each historical value and this median. These differences are expressed as their absolute values, and a new median is calculated of those absolute values. This is the MAD. If a value is 4 times the MAD away from the median of the data points, that value is classified as an outlier.
+The outlier detection is done using the Median Absolute Deviation (MAD). For this outlier detection method, the median of the data (all years of a specific country and product category) is calculated. Then, the difference is calculated between each historical value and this median. These differences are expressed as their absolute values, and a new median is calculated of those absolute values. This is the MAD. If a value is 4 times the MAD away from the median of the data points, that value is classified as an outlier.
 
 Example:
 
@@ -286,7 +286,7 @@ For instance when 2012 (the last year for which we have data) is missing they wi
 
 
 #### Calculate missing years by using the average of other similar countries
-First the average kilo's per inhabitant and average units per inhabitant are calculated for each stratum. Also the average purchasing power of each stratum is calculated (purchasing power per country multiplied with inhabitants of each country, then divided by total inhabitants in stratum).
+First the average kilo's per inhabitant and average units per inhabitant are calculated for each stratum. Also the average purchasing power of each stratum is calculated (purchasing power per country multiplied with inhabitants of each country, then divided by total inhabitants in stratum).  
 The purchasing power of the country with the missing data is also known. When the purchasing power is between the average of 2 stratums the missing value is calculated by taking the difference between de kilo's/units per inhabitant of the higher stratum and the lower stratum. This will then be divided by the difference in purchasing power between the higher stratum and the lower stratum. After this it will be multiplied with the difference in purchasing power between the country with the missing data and that of the lower stratum. Finally this outcome will be added to the average kg/units per inhabitant of the lower stratum. 
 The following example with demonstrate this procedure.
 
@@ -304,9 +304,9 @@ This way a value will be calculated based on the stratum average, but adjusted f
 
 #### Eliminate big changes between years
 After the last calculations there can be big changes from year to year. These are corrected in two ways. 
-The first check is to see if a specific outcome considering the kilo's per inhabitant differs more than 50% from the previous year (t-1) while the previous year and the next year (t+1) don't differ more than 20%. This only done if the value that will possibly be corrected is higher than 0.3. Below this value there is only little impact of the changes on the outcome of the collection categories.
+The first check is to see if a specific outcome considering the kilo's per inhabitant differs more than 50% from the previous year (t-1) while the previous year and the next year (t+1) don't differ more than 20%. This only done if the value that will possibly be corrected is higher than 0.3. Below this value there is only little impact of the changes on the outcome of the collection categories.  
 The second check is to see if a specific outcome is more than 20 percent below the minimum of the two surrounding years and more than 40 percent below the maximum value of those years. Also if a specific outcome is more than 20 percent higher than the maximum of the two surrounding years and more than 40 percent higher than the minimum of those years. This check is not done if the value of year t+2 is within 20 percent of the year that might be corrected. The reason for this is that in this case the year t+1 might be the one with an unreliable outcome. Just as with the first check, the second check is only done if the value that will possibly be corrected is higher than 0.3.
-Once a check has had a positive outcome the corresponding value will be deleted.
+Once a check has had a positive outcome the corresponding value will be deleted.  
 After this the empty values will be again calculated in the same way as described in the part "Calculate years by using the average of other years" above. So they will be replaced by the average of surrounding years.
 
 <br>
@@ -317,15 +317,15 @@ The amount of CRT monitors (UNU_Key 0302) is not reliable with the above method.
 <br>
 
 ### Calculate past POM
-Put-on-Market data is only calculated based on prodcom and International Trade data starting in 1995. For some countries especially those in stratum 3 data for 1995-2000 is also not available. Data for the years from 1980 until the year for which data is available, is calculated based on the POM of the first 3 available years. For instance if data is available from 1995 onwards then data from 1980 to 1994 is calculated based on the data of 1995-1997.
-In this example the data for 1994 is calculated as the average of 1995 to 1997 minus a fixed percentage. This fixed percentage is 2 for every UNU_Key. Every lower year is the same as one year higher minus the fixed percentage.
+Put-on-Market data is only calculated based on prodcom and International Trade data starting in 1995. For some countries especially those in stratum 3 data for 1995-2000 is also not available. Data for the years from 1980 until the year for which data is available, is calculated based on the POM of the first 3 available years. For instance if data is available from 1995 onwards then data from 1980 to 1994 is calculated based on the data of 1995-1997.  
+In this example the data for 1994 is calculated as the average of 1995 to 1997 minus a fixed percentage. This fixed percentage is 2 for every UNU_Key. Every lower year is the same as one year higher minus the fixed percentage.  
 In case these calculations form a strange graph when connecting the estimated historic data and the data based on the registers, an extra correction is done. When for instance 1995 is lower than 1996 but also lower than 1994, the year 1995 will be changed to the average of 1994 and 1996.
 
 <br>
 
 ### Calculate future POM
-The same method is used to predict the future POM starting in the first year for which not data is available yet. For instance in case data is available until 2015 then 2016 is calculated as the average of 2013 to 2015 plus a fixed percentage (at the moment 2 for every UNU_Key). Every next year is an increases with that same percentage from the previous year.
-In case these calculations form a strange graph when connecting the estimated future data and the data based on the registers, an extra correction is done. When for instance 2015 is higher than 2016 and also higher as 2014, the year 2015 will be changed to the average of 2014 and 2016.
+The same method is used to predict the future POM starting in the first year for which not data is available yet. For instance in case data is available until 2015 then 2016 is calculated as the average of 2013 to 2015 plus a fixed percentage (at the moment 2 for every UNU_Key). Every next year is an increases with that same percentage from the previous year.  
+In case these calculations form a strange graph when connecting the estimated future data and the data based on the registers, an extra correction is done. When for instance 2015 is higher than 2016 and also higher as 2014, the year 2015 will be changed to the average of 2014 and 2016.  
 The only exception of this method are the solar panels (UNU_Key 0002). The first future year is only based on the last available data year instead of a three year average.
 
 <br>
@@ -378,20 +378,20 @@ Van Straalen, V.M,  Roskam, A.J., & Baldé, C.P. (2016). Waste over Time [comput
 International trade data is published at the Eurostat website:
 http://epp.eurostat.ec.europa.eu/newxtweb/
 
-Make sure you register yourself so you can download the big amount of data
+Make sure you register yourself so you can download the big amount of data.  
 Go to "Available datasets" --> "INTERNATIONAL TRADE" -->
 "EU Trade Since 1988 By CN8 (DS-016890)". Click on the "New Query" icon.
 
 Fill the following fields in Step 1 "Dimension Selection":
                    
-* Reporter:
+* Reporter:  
   Select all countries except the aggregations starting with EA, EU or EUROZONE.
   Click the "select" button when you are done.
-* Partner:
+* Partner:  
 Select only:
-    - EU25_INTRA-EU25-EXTRA
+    - EU25_EXTRA-EU25-EXTRA
     - EU25_INTRA-EU25-INTRA
-* Product:
+* Product:  
   Select only the following CN codes (the advanced selection box is very helpful):
     - 63011000
     - 84*
@@ -402,13 +402,13 @@ Select only:
     - 92*
     - 94*
     - 95*
-* Flow:
+* Flow:  
   Select all
 * Period:
   - Select the years for which you would like to download data. You can choose up to 6 years at once which will result in a download of about 20MB.
   -  Choose only the complete years.
 For instance for year 2015 I choose: 201552-Jan.Dec.2015.
-* Indicators:
+* Indicators:  
   Select all
 
 After this press the Compress button to remove codes that do not generate data.
