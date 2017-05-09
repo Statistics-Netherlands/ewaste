@@ -37,7 +37,7 @@ options(stringsAsFactors=FALSE, warn=0, scipen=999, digits=4)
 
 require(plyr)
 require(reshape2)
-require(RODBC)
+require(readxl)
 
 
 # ----------------------------------------------------------
@@ -124,49 +124,49 @@ download.file(url, destfile, quiet = FALSE, mode = "wb",
 
 # 2002
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-2002-created-2009-11-09-N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-2002-created-2009-11-09-N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_2002-created-2009-11-09-N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 2001
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-2001-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-2001-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_2001-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 2000
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-2000-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-2000-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_2000-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 1999
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-1999-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-1999-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_1999-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 1998
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-1998-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-1998-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_1998-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 1997
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-1997-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-1997-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_1997-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 1996
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-1996-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-1996-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_1996-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
 # 1995
 url <- "http://ec.europa.eu/eurostat/documents/120432/6191935/Website-snapshot-1995-created-2009-11-09_N1.xls"
-destfile <- paste(DATA_PATH, "prodcom_import/Website-snapshot-1995-created-2009-11-09_N1.xls", sep = "/")
+destfile <- paste(DATA_PATH, "prodcom_import/Website_snapshot_1995-created-2009-11-09_N1.xls", sep = "/")
 download.file(url, destfile, quiet = FALSE, mode = "wb",
               cacheOK = TRUE, extra = getOption("download.file.extra"))
 
@@ -184,7 +184,6 @@ htbl_PCC_Match_Key <- read.csv("htbl_PCC_Match_Key.csv", quote = "\"",
 # Remove empty values
 htbl_PCC_Match_Key <- htbl_PCC_Match_Key[(htbl_PCC_Match_Key$PCC != "" & htbl_PCC_Match_Key$UNU_Key != ""), ]
 
-
 # ----------------------------------------------------------
 # Read the Excel files with Prodcom data
 # ----------------------------------------------------------
@@ -198,17 +197,52 @@ stopifnot(all(file.exists(filenames)))
 
 for (i in 1:length(filenames)) {
   print(sprintf("************** %d %s **************", i, filenames[i]))
-  data <- odbcConnectExcel2007(filenames[i])
-  PCC_SoldVolume <- sqlQuery(data, "SELECT * FROM [Sold Volume$A3:BZ10000]", as.is = TRUE)
-  PCC_Value <- sqlQuery(data, "SELECT * FROM [Value$A3:BZ10000]", as.is = TRUE)
-  odbcClose(data)
+
+  # Read volume data. We just use it for the column names, so warnings don't matter.
+  PCC_SoldVolume <- read_excel(filenames[i], sheet = "Sold Volume", 
+                               na="-",
+                               skip = 2)
+  colnames <- names(PCC_SoldVolume)
   
-  # We don't need first 3 rows
-  PCC_SoldVolume <- PCC_SoldVolume[4:nrow(PCC_SoldVolume), ]
-  PCC_Value <- PCC_Value[4:nrow(PCC_Value), ]
+  # Read again but now with column names as a data row. This way ensures all are read as characters.
+  PCC_SoldVolume <- read_excel(filenames[i], sheet = "Sold Volume",
+                               col_names = FALSE,
+                               na="-",
+                               skip = 2)
+  # Resore column names
+  names(PCC_SoldVolume) <- colnames
+  
+  # Remove first 4 rows. 
+  PCC_SoldVolume <- PCC_SoldVolume[5:nrow(PCC_SoldVolume), ]
+  
+  # Use only first 8 characters for prodcom code
+  PCC_SoldVolume$"PRODCOM Code" <- substr(PCC_SoldVolume$"PRODCOM Code", 1, 8)
+  
+  # Read value. We just use it for the column names, so warnings don't matter.
+  PCC_Value <- read_excel(filenames[i], sheet = "Value", 
+                               na="-",
+                               skip = 2)
+  colnames <- names(PCC_Value)
+  
+  # Read again but now with column names as a data row. This way ensures all are read as characters.
+  PCC_Value <- read_excel(filenames[i], sheet = "Value",
+                               col_names = FALSE,
+                               na="-",
+                               skip = 2)
+  
+  # Resore column names
+  names(PCC_Value) <- colnames
+  
+  # Remove first 4 rows
+  PCC_Value <- PCC_Value[5:nrow(PCC_Value), ]
+  
+  # Use only first 8 characters for prodcom code
+  PCC_Value$"PRODCOM Code" <- substr(PCC_Value$"PRODCOM Code", 1, 8)
+  
   
   
   # ### Clean-up PCC_SoldVolume ###
+  
   # Remove flag and Base variables
   flagindexes <- grep("^flag", names(PCC_SoldVolume))
   baseindexes <- grep("^Base", names(PCC_SoldVolume))
@@ -218,7 +252,7 @@ for (i in 1:length(filenames)) {
   PCC_SoldVolume <- melt(PCC_SoldVolume, id = c("PRODCOM Code", "Unit"))
   
   # Rename
-  PCC_SoldVolume <- rename(PCC_SoldVolume,c("variable"="Country_Name", "value"="SoldVolume"))
+  PCC_SoldVolume <- plyr::rename(PCC_SoldVolume,c("variable"="Country_Name", "value"="SoldVolume"))
   
   # Clean up Country_Name
   # Change or make sure that Country_Name is not a factor but a character string
@@ -229,8 +263,11 @@ for (i in 1:length(filenames)) {
                                                       (nchar(PCC_SoldVolume[selection, "Country_Name"])+1) -4,
                                                       nchar(PCC_SoldVolume[selection, "Country_Name"]))
   
+  # Remove empty countries. These come from the comments on the right of the source Excel file.
+  PCC_SoldVolume <- PCC_SoldVolume[PCC_SoldVolume$Country_Name!="",]
+  
   # Rename
-  PCC_SoldVolume <- rename(PCC_SoldVolume,c("PRODCOM Code"="PCC"))
+  PCC_SoldVolume <- plyr::rename(PCC_SoldVolume,c("PRODCOM Code"="PCC"))
   
   # Create column with year
   pos <- regexpr("Website_snapshot_",filenames[i])[1] # regexpr gives 3 elements. We only need the first.
@@ -246,6 +283,9 @@ for (i in 1:length(filenames)) {
   
   
   # ### Clean-up PCC_Value ###
+  # Remove the decimals that appear after import
+  PCC_Value$`PRODCOM Code` <- substr(PCC_Value$`PRODCOM Code`,1,8)
+  
   # Remove unit, flag and Base variables
   unitindexes <- grep("^Unit", names(PCC_Value))
   flagindexes <- grep("^flag", names(PCC_Value))
@@ -256,7 +296,10 @@ for (i in 1:length(filenames)) {
   PCC_Value <- melt(PCC_Value, id = "PRODCOM Code")
   
   # Rename
-  PCC_Value <- rename(PCC_Value,c("variable"="Country_Name", "value"="Value"))
+  PCC_Value <- plyr::rename(PCC_Value,c("variable"="Country_Name", "value"="Value"))
+  
+  # Remove empty countries. These come from the comments on the right of the source Excel file.
+  PCC_Value <- PCC_Value[PCC_Value$Country_Name!="",]
   
   # Clean up Country_Name
   # Change or make sure that Country_Name is not a factor but a character string
@@ -268,7 +311,7 @@ for (i in 1:length(filenames)) {
                                                  nchar(PCC_Value[selection, "Country_Name"]))
   
   # Rename
-  PCC_Value <- rename(PCC_Value,c("PRODCOM Code"="PCC"))
+  PCC_Value <- plyr::rename(PCC_Value,c("PRODCOM Code"="PCC"))
   
   # Create column with year.
   PCC_Value$Year <- datayear
@@ -347,6 +390,9 @@ prodcom$SoldVolume <- NULL
 # Remove non numeric codes from Value column. Only values are needed here.
 selection <- which( substr(prodcom$Value, 1, 1) %in% c(":", "C") )
 prodcom[selection, "Value"] <- NA
+
+# Some values can contain comma's. We need to replace them to dots.
+prodcom$Value <- gsub(",", ".", prodcom$Value)
 
 # Convert Value to numeric, convert from 1000 euro's to single euro's and round.
 prodcom$Value <- round(as.numeric(prodcom$Value) * 1000, digits = 0)

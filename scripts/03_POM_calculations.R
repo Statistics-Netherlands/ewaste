@@ -50,7 +50,7 @@ Population <- Population[Population$Destination == "pop 17", ]
 Population$Country <- toupper(Population$Country)
 
 Population$Destination <- NULL
-Population <- rename(Population,c("Value"="Inhabitants"))
+Population <- plyr::rename(Population,c("Value"="Inhabitants"))
 
 
 # ----------------------------------------------------------
@@ -73,7 +73,7 @@ PurPow <- PurPow[PurPow$Destination == "ppp ph17", ]
 PurPow$Country <- toupper(PurPow$Country)
 
 PurPow$Destination <- NULL
-PurPow <- rename(PurPow,c("Value"="PPP"))
+PurPow <- plyr::rename(PurPow,c("Value"="PPP"))
 
 
 
@@ -229,13 +229,13 @@ if ( PROCESS_ALL_COUNTRIES ) {
 
 # Set inputfile for calculations. This way we can use same calculations later for missing stratum means.
 mydf <- UNU_countries
-mydf <- rename(mydf,c("UNU_Key"="catA", "Country"="catB"))
+mydf <- plyr::rename(mydf,c("UNU_Key"="catA", "Country"="catB"))
 
 # Perform calculations and write in mydf.
 source(file.path(SCRIPT_PATH, "03c_estimate_missings_using_years.R"))
 
 # Set back to original names.
-mydf <- rename(mydf,c("catA"="UNU_Key", "catB"="Country"))
+mydf <- plyr::rename(mydf,c("catA"="UNU_Key", "catB"="Country"))
 UNU_countries <- mydf
 rm(mydf)
 
@@ -257,12 +257,12 @@ if ( PROCESS_ALL_COUNTRIES ) {
 if ( PROCESS_ALL_COUNTRIES ) {
   # Set inputfile for calculations
   mydf <- strat_tot
-  mydf <- rename(mydf,c("UNU_Key"="catA", "Stratum"="catB", "kpi_stratum"="kpi", "ppi_stratum"="ppi"))
+  mydf <- plyr::rename(mydf,c("UNU_Key"="catA", "Stratum"="catB", "kpi_stratum"="kpi", "ppi_stratum"="ppi"))
   
   source(file.path(SCRIPT_PATH, "03c_estimate_missings_using_years.R"))
   
   # Copy data to UNU_countries
-  strat_tot <- rename(mydf,c("catA"="UNU_Key", "catB"="Stratum", "kpi"="kpi_stratum", "ppi"="ppi_stratum"))
+  strat_tot <- plyr::rename(mydf,c("catA"="UNU_Key", "catB"="Stratum", "kpi"="kpi_stratum", "ppi"="ppi_stratum"))
   # flag is not needed here
   strat_tot$flag <- NULL
   
@@ -309,8 +309,8 @@ if ( PROCESS_ALL_COUNTRIES ) {
 # In case data is removed which cannot afterwards be estimated with surrounding years, we can put the
 # original value back.
 UNU_countries_before_smooth <- UNU_countries[ , c("UNU_Key", "Year", "Country", "kpi", "ppi")]
-UNU_countries_before_smooth <- rename(UNU_countries_before_smooth,c("kpi"="kpi_before_smooth",
-                                                                    "ppi"="ppi_before_smooth"))
+UNU_countries_before_smooth <- plyr::rename(UNU_countries_before_smooth,c("kpi"="kpi_before_smooth",
+                                                                          "ppi"="ppi_before_smooth"))
 
 
 source(file.path(SCRIPT_PATH, "03f_smooth_years.R"))
@@ -323,12 +323,12 @@ source(file.path(SCRIPT_PATH, "03f_smooth_years.R"))
 
 # Set inputfile for calculations. This way we can use same calculations later for missing stratum means.
 mydf <- UNU_countries
-mydf <- rename(mydf,c("UNU_Key"="catA", "Country"="catB"))
+mydf <- plyr::rename(mydf,c("UNU_Key"="catA", "Country"="catB"))
 
 # Perform calculations and write in mydf.
 source(file.path(SCRIPT_PATH, "03c_estimate_missings_using_years.R"))
 # Set back to original names.
-mydf <- rename(mydf,c("catA"="UNU_Key", "catB"="Country"))
+mydf <- plyr::rename(mydf,c("catA"="UNU_Key", "catB"="Country"))
 UNU_countries <- mydf
 rm(mydf)
 

@@ -51,7 +51,7 @@ Population <- Population[Population$Destination == "pop 17", ]
 Population$Country <- toupper(Population$Country)
 
 Population$Destination <- NULL
-Population <- rename(Population,c("Value"="Inhabitants"))
+Population <- plyr::rename(Population,c("Value"="Inhabitants"))
 
 
 # ----------------------------------------------------------
@@ -83,11 +83,11 @@ tbl_POM <- read.csv("tbl_POM.csv", quote = "\"",
 
 # Set inputfile for calculations
 mydf <- tbl_POM
-mydf <- rename(mydf,c("POM_t"="var"))
+mydf <- plyr::rename(mydf,c("POM_t"="var"))
 
 source(file.path(SCRIPT_PATH, "05a_calculate_aggregates.R"))
 
-mydf_all <- rename(mydf_all,c("var"="POM_t"))
+mydf_all <- plyr::rename(mydf_all,c("var"="POM_t"))
 
 # Remove variable Inhabitants...
 mydf_all$Inhabitants <- NULL
@@ -97,7 +97,7 @@ mydf_all <- merge(mydf_all, Population,  by=c("Country", "Year"),  all.x = TRUE)
 
 # Attach description of UNU_Keys
 mydf_all <- merge(mydf_all, htbl_Key_Description,  by="UNU_Key",  all.x = TRUE)
-mydf_all <- rename(mydf_all,c("Description"="UNU_Key_Description"))
+mydf_all <- plyr::rename(mydf_all,c("Description"="UNU_Key_Description"))
 
 # Copy result to tbl_POM_all
 
@@ -163,11 +163,11 @@ tbl_WEEE$kpi <- tbl_WEEE$WEEE_t / tbl_WEEE$Inhabitants * 1000
 
 # Set inputfile for calculations
 mydf <- tbl_WEEE
-mydf <- rename(mydf,c("WEEE_t"="var"))
+mydf <- plyr::rename(mydf,c("WEEE_t"="var"))
 
 source(file.path(SCRIPT_PATH, "05a_calculate_aggregates.R"))
 
-mydf_all <- rename(mydf_all,c("var"="WEEE_t"))
+mydf_all <- plyr::rename(mydf_all,c("var"="WEEE_t"))
 
 
 # merge Average weight with mydf_all
@@ -191,7 +191,7 @@ mydf_all <- merge(mydf_all, Population,  by=c("Country", "Year"),  all.x = TRUE)
 
 # Attach description of UNU_Keys
 mydf_all <- merge(mydf_all, htbl_Key_Description,  by="UNU_Key",  all.x = TRUE)
-mydf_all <- rename(mydf_all,c("Description"="UNU_Key_Description"))
+mydf_all <- plyr::rename(mydf_all,c("Description"="UNU_Key_Description"))
 
 # Copy result to tbl_WEEE_all
 
@@ -255,13 +255,13 @@ tbl_stock$kpi_WEEE_cumsum <- NULL
 
 # Set inputfile for calculations
 mydf <- tbl_stock
-mydf <- rename(mydf,c("stock_t"="var"))
+mydf <- plyr::rename(mydf,c("stock_t"="var"))
 
 source(file.path(SCRIPT_PATH, "05a_calculate_aggregates.R"))
 
 # Copy result to tbl_Stock_all
 tbl_Stock_all <- mydf_all[, -(8:10)]
-tbl_Stock_all <- rename(tbl_Stock_all,c("var"="stock_t"))
+tbl_Stock_all <- plyr::rename(tbl_Stock_all,c("var"="stock_t"))
 
 
 # Remove variable Inhabitants...
@@ -271,7 +271,7 @@ tbl_Stock_all$Inhabitants <- NULL
 tbl_Stock_all <- merge(tbl_Stock_all, Population,  by=c("Country", "Year"),  all.x = TRUE)
 
 tbl_Stock_all <- merge(tbl_Stock_all, htbl_Key_Description,  by="UNU_Key",  all.x = TRUE)
-tbl_Stock_all <- rename(tbl_Stock_all,c("Description"="UNU_Key_Description"))
+tbl_Stock_all <- plyr::rename(tbl_Stock_all,c("Description"="UNU_Key_Description"))
 
 # Calculate stock_t were missing.
 tbl_Stock_all[is.na(tbl_Stock_all$stock_t), "stock_t"] <- tbl_Stock_all[is.na(tbl_Stock_all$stock_t), "kpi"] *
@@ -324,7 +324,7 @@ eurostatdata <- read.csv("tbl_Eurostat_Data.csv", quote = "\"",
 eurostatdata$Description <- NULL
 eurostatdata$Parameter <- NULL
 
-eurostatdata <- rename(eurostatdata,c("Value"="kpi"))
+eurostatdata <- plyr::rename(eurostatdata,c("Value"="kpi"))
 
 
 

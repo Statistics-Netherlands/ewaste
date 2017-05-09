@@ -11,7 +11,7 @@
 # ----------------------------------------------------------
 # original_UNU_countries: Prepare datafile for merge
 # ----------------------------------------------------------
-original_UNU_countries <- rename(original_UNU_countries,
+original_UNU_countries <- plyr::rename(original_UNU_countries,
                                  c("POM_kg" = "POM_kg_original", "POM_pieces" = "POM_pieces_original"))
 
 

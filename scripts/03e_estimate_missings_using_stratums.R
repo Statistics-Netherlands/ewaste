@@ -42,7 +42,7 @@ rm(PurPow, Purpow2, Purpow_strat, Purpow_strat_wide)
 
 selection <- which(UNU_countries$Country == "LUX")
 high_s1 <- UNU_countries[selection, c("UNU_Key", "Year", "kpi", "ppi", "PPP")]
-high_s1 <- rename(high_s1,c("kpi"="kpi_high", "ppi"="ppi_high", "PPP"="PPP_high"))
+high_s1 <- plyr::rename(high_s1,c("kpi"="kpi_high", "ppi"="ppi_high", "PPP"="PPP_high"))
 
 # merge
 UNU_countries <- merge(UNU_countries, high_s1,  by=c("UNU_Key", "Year"), all.x = TRUE)
@@ -52,7 +52,7 @@ rm(high_s1)
 # Select the Romania data and add it to the dataset as separate variables
 selection <- which(UNU_countries$Country == "ROU")
 low_s1 <- UNU_countries[selection, c("UNU_Key", "Year", "kpi", "ppi", "PPP")]
-low_s1 <- rename(low_s1,c("kpi"="kpi_low", "ppi"="ppi_low", "PPP"="PPP_low"))
+low_s1 <- plyr::rename(low_s1,c("kpi"="kpi_low", "ppi"="ppi_low", "PPP"="PPP_low"))
 
 # merge
 UNU_countries <- merge(UNU_countries, low_s1,  by=c("UNU_Key", "Year"), all.x = TRUE)

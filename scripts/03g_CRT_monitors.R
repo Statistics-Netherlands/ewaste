@@ -17,14 +17,14 @@ UNU_countries2$POM_Pieces <- UNU_countries2$ppi * UNU_countries2$Inhabitants
 selection <- which(UNU_countries2$UNU_Key == "0302")
 desktops <- UNU_countries2[selection, ]
 
-desktops <- rename(desktops, c("POM_Pieces"="POM_Pieces_0302"))
+desktops <- plyr::rename(desktops, c("POM_Pieces"="POM_Pieces_0302"))
 desktops <- desktops[, c("Year", "Country", "POM_Pieces_0302")]
 
 # Move number of flatpanels to column.
 selection <- which(UNU_countries2$UNU_Key == "0309")
 flatpanels <- UNU_countries2[selection, ]
 
-flatpanels <- rename(flatpanels, c("POM_Pieces"="POM_Pieces_0309"))
+flatpanels <- plyr::rename(flatpanels, c("POM_Pieces"="POM_Pieces_0309"))
 flatpanels <- flatpanels[, c("Year", "Country", "POM_Pieces_0309")]
 
 # Merge desktops and flatpanels with UNU_countries2
@@ -64,7 +64,7 @@ UNU_countries2[-selection, "kpi"] <- NA
 UNU_countries2[-selection, "ppi"] <- NA
 
 # Merge results with UNU_countries
-UNU_countries2<- rename(UNU_countries2, c("kpi"="kpi_new", "ppi"="ppi_new"))
+UNU_countries2<- plyr::rename(UNU_countries2, c("kpi"="kpi_new", "ppi"="ppi_new"))
 UNU_countries2 <- UNU_countries2[, c("UNU_Key", "Year", "Country", "kpi_new", "ppi_new")]
 
 UNU_countries <- merge(UNU_countries, UNU_countries2, by=c("UNU_Key", "Country", "Year"), all.x = TRUE)

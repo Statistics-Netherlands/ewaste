@@ -71,3 +71,5 @@
 "EU10PV_8","Medical devices"
 "EU10PV_9","Monitoring and control instruments"
 "EU10PV_10","Automatic dispensers"
+"Total","Total"
+"Total-excl.PV","Total excluding Central Heating (0001) and PV panels (0002)"

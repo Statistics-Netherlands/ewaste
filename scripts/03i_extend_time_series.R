@@ -116,11 +116,12 @@ selection <- which(UNU_countries$UNU_Key == "0002" & UNU_countries$flag == 200)
 UNU_countries[selection, "kpi"] <- 0.
 UNU_countries[selection, "ppi"] <- 0.
 
-# Force values of zero for all historic data of mobile phones, laptops before 1995
+# Force values of zero for all historic data of mobile phones, laptops, flatpanels before 1995
 selection <- which( UNU_countries$flag == 200 &
                      (UNU_countries$UNU_Key == "0303" |
                       UNU_countries$UNU_Key == "0306" |
-                      UNU_countries$UNU_Key == "0309") )
+                      UNU_countries$UNU_Key == "0309" |
+                      UNU_countries$UNU_Key == "0408") )
 UNU_countries[selection, "kpi"] <- 0.
 UNU_countries[selection, "ppi"] <- 0.
 

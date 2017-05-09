@@ -37,7 +37,7 @@ tbl_Weibull_parameters <- read.csv("tbl_data_tool.csv", quote = "\"",
                                    colClasses = c("character", "character", "character", "numeric", "NULL",
                                                   "character", "NULL"))
 
-tbl_Weibull_parameters <- rename(tbl_Weibull_parameters,c("Destination"="Parameter"))
+tbl_Weibull_parameters <- plyr::rename(tbl_Weibull_parameters,c("Destination"="Parameter"))
 
 # Convert country codes to uppercase.
 tbl_Weibull_parameters$Country <- toupper(tbl_Weibull_parameters$Country)
@@ -46,7 +46,7 @@ tbl_Weibull_parameters$Country <- toupper(tbl_Weibull_parameters$Country)
 selection <- which(toupper(tbl_Weibull_parameters$Parameter) == "SHAPEPARAMETER")
 shapedata <- tbl_Weibull_parameters[selection, ]
 
-shapedata <- rename(shapedata,c("Value"="shape"))
+shapedata <- plyr::rename(shapedata,c("Value"="shape"))
 shapedata$Parameter <- NULL
 
 
@@ -54,7 +54,7 @@ shapedata$Parameter <- NULL
 selection <- which(toupper(tbl_Weibull_parameters$Parameter) == "SCALEPARAMETER")
 scaledata <- tbl_Weibull_parameters[selection, ]
 
-scaledata <- rename(scaledata,c("Value"="scale"))
+scaledata <- plyr::rename(scaledata,c("Value"="scale"))
 scaledata$Parameter <- NULL
 
 # Rebuild tbl_Weibull_parameters with the scale and shape data.
