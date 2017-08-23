@@ -1,3 +1,30 @@
+# ----------------------------------------------------------
+#  PRODCOM: Collect Eurostat PV panel data (UNU_Key 0002)
+# ----------------------------------------------------------
+
+# At Eurostat PRODCOM data kan be download.
+# Go to the link
+# http://ec.europa.eu/eurostat/SDMX/diss-web/rest/data/DS-066342/?startPeriod=1995&endPeriod=1995
+# to download data for 1995. What you download is actually an xml file which contains a link to the 
+# xml file with the real data. It takes some minutes before that data is ready to download.
+# When done, unzip it in the prodcom_import folder and give it the name PRODCOM_1995.xml
+# Do this for every year. When all data is ready run the code below.
+
+
+require(rsdmx)
+url <- paste(DATA_PATH, "prodcom_import/PRODCOM_1995.xml", sep = "/")
+myData <- as.data.frame( readSDMX(url, isURL = FALSE) )
+
+
+# Dit hierboven werkt, al duurt het 20 minuten om 1 sdmx naar dataframe te converteren.
+# Hier nog tips voor automatisch unzippen en zo:
+# https://stackoverflow.com/questions/30563273/eurostat-bulk-sdmx-data-download-into-r
+
+
+
+
+
+
 # -----------------------------------------------------------------------------------------------------------
 #
 #   Name:           00a_Prepare_Prodcom_data.R

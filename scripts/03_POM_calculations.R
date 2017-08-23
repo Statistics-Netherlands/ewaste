@@ -52,12 +52,38 @@ Population$Country <- toupper(Population$Country)
 Population$Destination <- NULL
 Population <- plyr::rename(Population,c("Value"="Inhabitants"))
 
+# For many countries (mostly outside Europe) there is no old data about number of inhabitants.
+# We estimate it by taking the first known value and apply the world population growth rate found at:
+# http://www.worldometers.info/world-population/world-population-by-year/
 
-# ----------------------------------------------------------
-# htbl_Key_Weight: Read table with average weights per UNU_Key
-# ----------------------------------------------------------
-htbl_Key_Weight <- read.csv("htbl_Key_Weight.csv", quote = "\"",
-                         colClasses = c("character", "numeric", "character"))
+tbl_world_population <- read.csv2("tbl_world_population.csv", quote = "\"",
+                                  colClasses = c("character", "NULL", "numeric", "NULL",  "NULL", "NULL", "NULL") )
+
+names(tbl_world_population)[2] <- "GrowthRate"
+
+Population <- merge(Population, tbl_world_population,  all.x = TRUE)
+
+sortorder <- order(Population$Country, -Population$Year)
+Population <- Population[sortorder, ]
+
+# Get data for previous row
+Population$PrevYear <- c(NA, head(Population$Year, -1))
+Population$PrevCountry <- c(NA, head(Population$Country, -1))
+
+selection <- which( is.na(Population$Inhabitants) &
+                      (Population$Year == Population$PrevYear -1) &
+                      (Population$Country == Population$PrevCountry) )
+
+# perform calculation
+for (i in selection)
+{Population[i, "Inhabitants"] <- Population[(i - 1), "Inhabitants"] /
+  ( (Population[i-1, "GrowthRate"] + 100) /100)
+}
+
+rm(tbl_world_population)
+Population$GrowthRate <- NULL
+Population$PrevYear <- NULL
+Population$PrevCountry <- NULL
 
 
 # ----------------------------------------------------------
@@ -66,7 +92,7 @@ htbl_Key_Weight <- read.csv("htbl_Key_Weight.csv", quote = "\"",
 PurPow <- read.csv("tbl_Data.csv", quote = "\"",
                    colClasses = c("character", "numeric", "numeric", "character"))
 
-# Only keep data about number of inhabitants
+# Only keep data about the purchasing power parity
 PurPow <- PurPow[PurPow$Destination == "ppp ph17", ]
 
 # Convert country codes to uppercase.
@@ -185,14 +211,24 @@ selection <- which(UNU_countries$UNU_Key == "0407" & UNU_countries$Stratum == 1 
 UNU_countries[selection, "kpi"] <- UNU_countries[(selection -1), "kpi"] / 2
 UNU_countries[selection, "ppi"] <- UNU_countries[(selection -1), "ppi"] / 2
 UNU_countries[selection, "flag"] <- 52
+
 selection <- which(UNU_countries$UNU_Key == "0407" & UNU_countries$Stratum == 2 & UNU_countries$Year == 2007)
 UNU_countries[selection, "kpi"] <- UNU_countries[(selection -1), "kpi"] / 2
 UNU_countries[selection, "ppi"] <- UNU_countries[(selection -1), "ppi"] / 2
 UNU_countries[selection, "flag"] <- 52
+
 selection <- which(UNU_countries$UNU_Key == "0407" & UNU_countries$Stratum == 3 & UNU_countries$Year == 2008)
 UNU_countries[selection, "kpi"] <- UNU_countries[(selection -1), "kpi"] / 2
 UNU_countries[selection, "ppi"] <- UNU_countries[(selection -1), "ppi"] / 2
 UNU_countries[selection, "flag"] <- 52
+
+# In case flag value was set but calculation gives missing value, then reset the flag to 1.
+selection <- which( UNU_countries$UNU_Key == "0407" & UNU_countries$flag == 52 & is.na(UNU_countries$kpi) )
+# in case of empty vector don't do command
+if (length(selection) > 0)
+  {UNU_countries[selection, "flag"] <- 1}
+  
+
 
 
 # There are too many unrealistic data points in UNU_Key 0802. For now values of over 20 kg per inhabitant ar removed.
@@ -201,7 +237,7 @@ UNU_countries[selection, "flag"] <- 52
 selection <- which(UNU_countries$UNU_Key == "0802" & UNU_countries$kpi > 20 )
 UNU_countries[selection, "kpi"] <- NA
 UNU_countries[selection, "ppi"] <- NA
-
+UNU_countries[selection, "flag"] <- 5 # This is same flag value as values removed because they are high outliers in 3a.
 
 
 
@@ -352,18 +388,21 @@ rm(UNU_countries_before_smooth)
 source(file.path(SCRIPT_PATH, "03g_CRT_monitors.R"))
 
 
-# ----------------------------------------------------------
-# UNU_countries: Add Eurostat PV panel data (UNU_Key 0002)
-# ----------------------------------------------------------
-
-source(file.path(SCRIPT_PATH, "03h_add_PV_panel_data.R"))
-
 
 # ----------------------------------------------------------
 # UNU_countries: Extend time series
 # ----------------------------------------------------------
 
 source(file.path(SCRIPT_PATH, "03i_extend_time_series.R"))
+
+
+
+# ----------------------------------------------------------
+# UNU_countries: Add Eurostat PV panel data (UNU_Key 0002)
+# ----------------------------------------------------------
+
+source(file.path(SCRIPT_PATH, "03h_add_PV_panel_data.R"))
+
 
 
 # ----------------------------------------------------------
@@ -373,25 +412,25 @@ source(file.path(SCRIPT_PATH, "03i_extend_time_series.R"))
 source(file.path(SCRIPT_PATH, "03j_changes_compared_to_original_data.R"))
 
 
-# ----------------------------------------------------------
-# UNU_countries: LED lamps didn't exist before 2007
-# ----------------------------------------------------------
-
-selection <- which (UNU_countries$UNU_Key == "0505" & UNU_countries$Year <= 2006)
-UNU_countries[selection, "kpi"] <- 0
-UNU_countries[selection, "ppi"] <- 0
-UNU_countries[selection, "flag"] <- 52
-
-# To make the transition more smoothly the previous year gets half the value of the year before that one.
-# First sort dataframe rows by UNU_Key, Country and Year.
-sortorder <- order(UNU_countries$UNU_Key, UNU_countries$Country, UNU_countries$Year)
-UNU_countries <- UNU_countries[sortorder, ]
-
-selection <- which(UNU_countries$UNU_Key == "0505" & UNU_countries$Year == 2007)
-UNU_countries[selection, "kpi"] <- UNU_countries[(selection +1), "kpi"] / 2
-UNU_countries[selection, "ppi"] <- UNU_countries[(selection +1), "ppi"] / 2
-UNU_countries[selection, "flag"] <- 52
-
+# # ----------------------------------------------------------
+# # UNU_countries: LED lamps didn't exist before 2007
+# # ----------------------------------------------------------
+# 
+# selection <- which (UNU_countries$UNU_Key == "0505" & UNU_countries$Year <= 2006)
+# UNU_countries[selection, "kpi"] <- 0
+# UNU_countries[selection, "ppi"] <- 0
+# UNU_countries[selection, "flag"] <- 52
+# 
+# # To make the transition more smoothly the previous year gets half the value of the year before that one.
+# # First sort dataframe rows by UNU_Key, Country and Year.
+# sortorder <- order(UNU_countries$UNU_Key, UNU_countries$Country, UNU_countries$Year)
+# UNU_countries <- UNU_countries[sortorder, ]
+# 
+# selection <- which(UNU_countries$UNU_Key == "0505" & UNU_countries$Year == 2007)
+# UNU_countries[selection, "kpi"] <- UNU_countries[(selection +1), "kpi"] / 2
+# UNU_countries[selection, "ppi"] <- UNU_countries[(selection +1), "ppi"] / 2
+# UNU_countries[selection, "flag"] <- 52
+# 
 
 
 # ----------------------------------------------------------
@@ -406,6 +445,57 @@ UNU_countries$POM_pieces = UNU_countries$ppi * UNU_countries$Inhabitants
 # Convert kg to tonnes.
 UNU_countries$POM_t = UNU_countries$POM_kg / 1000
 UNU_countries$POM_kg <- NULL
+
+
+# ------------------------- PRODCOM FLAG -------------------------------
+# Take the flag from the ProdCom estimations (script 01) and
+# merge it with the flag of the POM calculations (script 03).
+
+tbl_PCC <- read.csv("tbl_PCC.csv", quote = "\"", 
+                    colClasses = c("character", "character", "character", "numeric", "numeric",
+                                   "character", "numeric"))
+
+htbl_PCC_Match_Key <- read.csv("htbl_PCC_Match_Key.csv", quote = "\"",
+                               colClasses = c("character", "character", "character"))
+
+tbl_PCC <- merge(tbl_PCC, htbl_PCC_Match_Key, by=c("PCC", "Year"), all.x = TRUE)
+
+# remove missings
+tbl_PCC[which (tbl_PCC$UNU_Key == ""), "UNU_Key"] <- NA
+tbl_PCC <- tbl_PCC[!is.na(tbl_PCC$UNU_Key), ]
+tbl_PCC <- tbl_PCC[!is.na(tbl_PCC$flag), ]
+
+# Count number of flags per UNU_Key, Year, Country and flag-type.
+prodcom_flags <- count(tbl_PCC[!is.na(tbl_PCC$UNU_Key), ][ , c("UNU_Key", "Year", "Country", "flag")])
+names(prodcom_flags)[5] <- "n_flag"
+
+# Change format
+prodcom_flags <- dcast(prodcom_flags, UNU_Key + Year + Country ~ flag, value.var = "n_flag")
+
+# Add data to UNU_countries
+UNU_countries <- merge(UNU_countries, prodcom_flags,  by=c("UNU_Key", "Year", "Country"),  all.x = TRUE)
+
+# If there has been estimations based on export/prodcom ratio of other years or other countries, 
+# and flag value is zero, then alter it to flag it, to mark at least part of the value is based
+# on a prodcom value estimation.
+selection <- which( !is.na(UNU_countries$`1`) & UNU_countries$flag==0 )
+UNU_countries[selection, "flag"] <- 41
+selection <- which( !is.na(UNU_countries$`2`) & UNU_countries$flag==0 )
+UNU_countries[selection, "flag"] <- 42
+selection <- which( !is.na(UNU_countries$`3`) & UNU_countries$flag==0 )
+UNU_countries[selection, "flag"] <- 43
+
+UNU_countries$`0` <- NULL
+UNU_countries$`1` <- NULL
+UNU_countries$`2` <- NULL
+UNU_countries$`3` <- NULL
+
+rm(tbl_PCC)
+rm(prodcom_flags)
+
+# ------------------------- END PRODCOM FLAG -------------------------------
+
+
 
 # Sort order for columns
 sortorder_c <- c("Stratum", "Country", "UNU_Key", "Year", "POM_t", "POM_pieces",

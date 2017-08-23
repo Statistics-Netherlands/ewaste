@@ -5,10 +5,17 @@
 #   Description:    
 #                   This script shows the procedures taken to make
 #                   the International Trade datafile in the shape used for further processing.
-#                   In case you start from zero, then download a one or few years together.
+#                   In case you start from zero, then download all available years.
 #
-#                   International trade data is published at the Eurostat website:
+#                   International trade data available by the Eurostat Bulk Download facility.
+#                   The following script will use this Bulk download facility data.
+#
+#                   The data is also published at the Eurostat website:
 #                   http://epp.eurostat.ec.europa.eu/newxtweb/
+#
+#                   You can also download data from there as well if you prefer, but his is not
+#                   what is used in the remainder of the script.
+#                   This is how the download from http://epp.eurostat.ec.europa.eu/newxtweb/ works:
 #
 #                   Make sure you register yourself so you can download the big amount of data
 #                   Go to "Available datasets" --> "INTERNATIONAL TRADE" -->
@@ -67,12 +74,6 @@
 #                   Give extraction  name and it is useful to select "Notify me whenever this dataset is uploaded"
 #                   Click the "Finish" button.
 #                   Once completed you can download the data under the tab "Completed Works".
-#                   Place it in the folder '.\ewaste-master\data\international_trade'.
-#
-#                   Extract and rename the datafile into something meaningful like "IT2010-2015.csv"
-#                   Enter the filenames in the list "ITdata" in the script below at line 90.
-#   
-#                   Run the following R script to put it in the shape used for further processing.
 #
 #   Author:         V.M. van Straalen - Statistics Netherlands
 #
@@ -81,35 +82,8 @@
 setwd(DATA_PATH)
 
 options(stringsAsFactors=FALSE, warn=0, scipen=999, digits=4)
-
 require(plyr)
 require(reshape2)
-
-
-# Names of files to read.
-ITdata <-list("IT_1995-1998.csv",
-  "IT_1999-2003.csv",
-  "IT_2004-2009.csv",
-  "IT_2010-2015.csv"
-)
-
-
-
-# First read data needed in the process of processing the International Trade data.
-
-# ----------------------------------------------------------
-# tbl_Countries: Read table with country codes
-# ----------------------------------------------------------
-tbl_Countries <- read.csv("tbl_Countries.csv", quote = "\"",
-                          colClasses = c("character", "NULL", "NULL", "character"))
-
-# Convert country codes to uppercase.
-tbl_Countries$Country <- toupper(tbl_Countries$Country)
-
-# rename
-tbl_Countries <- rename(tbl_Countries,c("CountryCode2"="REPORTER"))
-
-
 # ----------------------------------------------------------
 # tbl_sup_units: Read the CSV file with the supplementary units information
 # ----------------------------------------------------------
@@ -129,77 +103,132 @@ htbl_CN_Match_Key <- read.csv("htbl_CN_Match_Key.csv", quote = "\"",
 
 
 
+# ----------------------------------------------------------
+# Collect the data
+# ----------------------------------------------------------
+# Annual data can be found at
+# http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&dir=comext%2F2016S2%2Fdata
+# Unpack all this in the .\data\international_trade folder
+
+# Metadata can be found at:
+# http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&dir=comext%2F201706%2Ftext%2Fenglish
+# Change 201706 for the directory of the current year/month.
 
 
+filenames <- list.files("./international_trade", pattern="^nc.*\\.dat", full.names=TRUE)
+filenames <- normalizePath(filenames)
+stopifnot(all(file.exists(filenames)))
 
-# Pass filenames to code that processes the International Trade data.
-# This will read the varous files specified in the list at row 90 and generate
-# a combined dataframe in the form that is needed for the rest of the code.
-for (i in 1:length(ITdata) ){
-  print(sprintf("************** %d %s **************", i, ITdata[i]))
+# Create emtpy dataframe to store the data in.
+tbl_CN_all <- data.frame()
+
+for (i in 1:length(filenames)) {
+  print(sprintf("************** %d %s **************", i, filenames[i]))
+
+  CN_1Year_data <- read.csv(filenames[i], header = TRUE, colClasses = rep("character", 7) )
+
+  CN_1Year_data$VALUE_1000ECU <- as.numeric(CN_1Year_data$VALUE_1000ECU)
+  CN_1Year_data$QUANTITY_TON <- as.numeric(CN_1Year_data$QUANTITY_TON)
+  CN_1Year_data$SUP_QUANTITY <- as.numeric(CN_1Year_data$SUP_QUANTITY)
   
-  # ----------------------------------------------------------
-  # Read the CSV file with the International trade data
-  # ----------------------------------------------------------
-  tbl_CN <- read.csv( paste( "./international_trade/", ITdata[i], sep = ""), header = TRUE,
-                      colClasses = c("character", "character", "character", "numeric", "numeric", "character",
-                                     "numeric"))
+  # Partners 1010 (EU-intra total) and 1011 (EU_extra total) are aggregates.
+  # Selecting those, or selecting all the others give the same results.
+  # Also use only STAT_REGIME code 4 which are totals of all statistical procedures.
   
+  selection <- which ( CN_1Year_data$PARTNER %in% c("1010", "1011") & CN_1Year_data$STAT_REGIME == "4" )
+  CN_1Year_data <- CN_1Year_data[selection, ]
+  CN_1Year_data$STAT_REGIME <- NULL
   
-  # Aggregate EU28-INTRA and EU28-EXTRA to World data
-  tbl_CN <- ddply( tbl_CN, c("REPORTER", "PRODUCT", "FLOW", "PERIOD", "INDICATORS"), summarise,
-                   INDICATOR_VALUE = sum(INDICATOR_VALUE, na.rm=TRUE) )
-  
-  
-  
-  
-  # ----------------------------------------------------------
-  # tbl_CN: Convert country codes and reshape data
-  # ----------------------------------------------------------
-  
-  # Merge International Trade data with Country codes list
-  tbl_CN <- merge(tbl_CN, tbl_Countries, by="REPORTER", all.x = TRUE)
-  
-  # REPORTER is not needed anymore
-  tbl_CN$REPORTER <- NULL
+  # Rename PRODUCT_NC to CN
+  CN_1Year_data <- rename(CN_1Year_data,c("PRODUCT_NC"="CN"))
   
   # Create Year
-  tbl_CN$Year <- substr(tbl_CN$PERIOD, 1, 4)
-  tbl_CN$PERIOD <- NULL
+  CN_1Year_data$Year <- substr(CN_1Year_data$PERIOD, 1, 4)
+  CN_1Year_data$PERIOD <- NULL
   
-  # Cast data into wide form while calculating the sum of every group
-  tbl_CN <- dcast(tbl_CN, PRODUCT + Country + Year ~ FLOW + INDICATORS, value.var = "INDICATOR_VALUE",
-                  sum, na.rm=TRUE)
+  # ----------------------------------------------------------
+  #  tbl_CN: Only select CN records that are connected with a UNU_Key.
+  # ----------------------------------------------------------
+  # Don't run this part if you want all products (so also other than electrical)
+  # Here the not electrical products are removed for speed and in case of computer memory shortage.
+  # Running only the electrical products takes about 50 minutes. All records takes a couple of hours.
+  # When running all records also run line 163 to save that data.
+  # Only take records that are available in both files
+  CN_1Year_data <- merge(CN_1Year_data, htbl_CN_Match_Key, by=c("CN", "Year"))
+  CN_1Year_data$UNU_Key <- NULL
+  # ----------------------------------------------------------
+  
+  # Aggregate the partners. 
+  CN_1Year_data <- ddply( CN_1Year_data, c("DECLARANT", "CN", "FLOW", "Year"), summarise,
+                    VALUE_1000ECU = sum(VALUE_1000ECU, na.rm=TRUE),
+                    QUANTITY_TON = sum(QUANTITY_TON, na.rm=TRUE),
+                    SUP_QUANTITY = sum(SUP_QUANTITY, na.rm=TRUE) )
+  
+  # Read metadata
+  #REPORTERS <- read.table("./international_trade/REPORTERS.txt", sep = "\t",
+  #                        colClasses = c("character", "NULL", "NULL", "character", "NULL", "NULL") )
+  
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="001"] <- "FRA"
+  # Declarant code '002' is actually "Belg.-Luxbg", but on the http://epp.eurostat.ec.europa.eu/newxtweb/
+  # website, al that data is given to country code BEL and none to LUX. So do the same thing
+  # over here.
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="002"] <- "BEL"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="003"] <- "NLD"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="004"] <- "DEU"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="005"] <- "ITA"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="006"] <- "GBR"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="007"] <- "IRL"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="008"] <- "DNK"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="009"] <- "GRC"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="010"] <- "PRT"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="011"] <- "ESP"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="017"] <- "BEL"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="018"] <- "LUX"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="030"] <- "SWE"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="032"] <- "FIN"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="038"] <- "AUT"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="046"] <- "MLT"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="053"] <- "EST"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="054"] <- "LVA"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="055"] <- "LTU"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="060"] <- "POL"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="061"] <- "CZE"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="063"] <- "SVK"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="064"] <- "HUN"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="066"] <- "ROU"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="068"] <- "BRG"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="091"] <- "SVN"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="092"] <- "HRV"
+  CN_1Year_data$DECLARANT[CN_1Year_data$DECLARANT=="600"] <- "CYP"
+  
+  # Rename
+  CN_1Year_data <- rename(CN_1Year_data,c("DECLARANT"="Country"))
+
+  # Reshape data into wide form while calculating the sum of every group
+  # First melt, then cast.
+  CN_1Year_data <- melt(CN_1Year_data, id = c("Country", "CN", "FLOW", "Year"))
+  CN_1Year_data <- dcast(CN_1Year_data, Country + CN + Year ~ FLOW + variable, value.var = "value",
+                sum, na.rm=TRUE)
   
   # Rename new variables
-  tbl_CN <- rename(tbl_CN,c("1_QUANTITY_IN_100KG"="Import_Quantity_kg"))
-  tbl_CN <- rename(tbl_CN,c("1_SUPPLEMENTARY_QUANTITY"="Import_Quantity_Sup"))
-  tbl_CN <- rename(tbl_CN,c("1_VALUE_IN_EUROS"="Import_Value"))
-  tbl_CN <- rename(tbl_CN,c("2_QUANTITY_IN_100KG"="Export_Quantity_kg"))
-  tbl_CN <- rename(tbl_CN,c("2_SUPPLEMENTARY_QUANTITY"="Export_Quantity_Sup"))
-  tbl_CN <- rename(tbl_CN,c("2_VALUE_IN_EUROS"="Export_Value"))
+  CN_1Year_data <- rename(CN_1Year_data,c("1_QUANTITY_TON"="Import_Quantity_kg"))
+  CN_1Year_data <- rename(CN_1Year_data,c("1_SUP_QUANTITY"="Import_Quantity_Sup"))
+  CN_1Year_data <- rename(CN_1Year_data,c("1_VALUE_1000ECU"="Import_Value"))
+  CN_1Year_data <- rename(CN_1Year_data,c("2_QUANTITY_TON"="Export_Quantity_kg"))
+  CN_1Year_data <- rename(CN_1Year_data,c("2_SUP_QUANTITY"="Export_Quantity_Sup"))
+  CN_1Year_data <- rename(CN_1Year_data,c("2_VALUE_1000ECU"="Export_Value"))
   
-  # Data in 100kg still has to be converted to kg.
-  tbl_CN$Import_Quantity_kg <- tbl_CN$Import_Quantity_kg * 100
-  tbl_CN$Export_Quantity_kg <- tbl_CN$Export_Quantity_kg * 100
+  # Data in TON still has to be converted to kg.
+  CN_1Year_data$Import_Quantity_kg <- CN_1Year_data$Import_Quantity_kg * 1000
+  CN_1Year_data$Export_Quantity_kg <- CN_1Year_data$Export_Quantity_kg * 1000
   
-  # Rename PRODUCT to CN
-  tbl_CN <- rename(tbl_CN,c("PRODUCT"="CN"))
+  # And 1000 Euros' have to be converted to Euro's.
+  CN_1Year_data$Import_Value <- CN_1Year_data$Import_Value * 1000
+  CN_1Year_data$Export_Value <- CN_1Year_data$Export_Value * 1000
   
   
   # Add variable Unit to CN data
-  tbl_CN <- merge(tbl_CN, tbl_sup_units, by="CN", all.x = TRUE)
-  
-  
-  
-  
-  # ----------------------------------------------------------
-  #  tbl_CN: Only select CN records that are connected with a UNU_Key
-  # ----------------------------------------------------------
-  
-  # Only take records that are available in both files
-  tbl_CN <- merge(tbl_CN, htbl_CN_Match_Key, by=c("CN", "Year"))
-  tbl_CN$UNU_Key <- NULL
+  CN_1Year_data <- merge(CN_1Year_data, tbl_sup_units, by="CN", all.x = TRUE)
   
   
   # ----------------------------------------------------------
@@ -211,10 +240,15 @@ for (i in 1:length(ITdata) ){
   {tbl_CN_all <- data.frame()}
   
   # Append the last read data to this file to makea datafile for all years
-  tbl_CN_all <- rbind(tbl_CN_all, tbl_CN)
+  tbl_CN_all <- rbind(tbl_CN_all, CN_1Year_data)
   
 }
 
+#write.csv(tbl_CN_all, file = "tbl_CN_all_products.csv", quote = TRUE, row.names = FALSE)
+
+# Select only electronic products.
+tbl_CN_all <- merge(tbl_CN_all, htbl_CN_Match_Key, by=c("CN", "Year"))
+tbl_CN_all$UNU_Key <- NULL
 
 
 
@@ -223,7 +257,9 @@ for (i in 1:length(ITdata) ){
 # ----------------------------------------------------------
 
 # Sort order for columns
-sortorder_c <- c(3, 1, 2, 5, 6, 8, 9, 10, 4, 7)
+sortorder_c <- c("Country", "CN", "Year", "Import_Quantity_Sup", "Import_Value",
+                 "Export_Quantity_Sup", "Export_Value", "Unit",
+                 "Import_Quantity_kg",  "Export_Quantity_kg")
 
 # Sort dataframe rows by Country, Year and PCC.
 sortorder <- order(tbl_CN_all$Country, tbl_CN_all$Year, tbl_CN_all$CN)

@@ -165,7 +165,10 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_s1"] +
   (UNU_countries[selection, "PPP_high"] - UNU_countries[selection, "PPP_s1_mean"]) *
   (UNU_countries[selection, "PPP"]      - UNU_countries[selection, "PPP_s1_mean"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+# Only update the flag, when a value has been estimated.
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 
@@ -184,7 +187,9 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_s2"] +
   (UNU_countries[selection, "PPP_s1_mean"]  - UNU_countries[selection, "PPP_s2_mean"]) *
   (UNU_countries[selection, "PPP"]          - UNU_countries[selection, "PPP_s2_mean"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 
@@ -203,7 +208,9 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_s2"] +
   (UNU_countries[selection, "PPP_s1_mean"]  - UNU_countries[selection, "PPP_s2_mean"]) *
   (UNU_countries[selection, "PPP"]          - UNU_countries[selection, "PPP_s2_mean"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 
@@ -222,7 +229,9 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_s3"] +
   (UNU_countries[selection, "PPP_s2_mean"]  - UNU_countries[selection, "PPP_s3_mean"]) *
   (UNU_countries[selection, "PPP"]          - UNU_countries[selection, "PPP_s3_mean"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 
@@ -241,7 +250,9 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_s3"] +
   (UNU_countries[selection, "PPP_s2_mean"]  - UNU_countries[selection, "PPP_s3_mean"]) *
   (UNU_countries[selection, "PPP"]          - UNU_countries[selection, "PPP_s3_mean"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 
@@ -260,7 +271,9 @@ UNU_countries[selection, "ppi"] <- UNU_countries[selection, "ppi_low"] +
   (UNU_countries[selection, "PPP_s3_mean"]  - UNU_countries[selection, "PPP_low"]) *
   (UNU_countries[selection, "PPP"]          - UNU_countries[selection, "PPP_low"]) 
 
-UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20
+selection <- which ( (1:nrow(UNU_countries)) %in% selection & !is.na(UNU_countries$kpi) ) 
+{UNU_countries[selection, "flag"] <- UNU_countries[selection, "flag"] + 20}
+
 
 
 

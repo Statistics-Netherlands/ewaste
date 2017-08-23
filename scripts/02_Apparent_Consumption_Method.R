@@ -43,11 +43,25 @@ names(htbl_PCC_Weight)[2] <- "PCC_Av_W"
 # htbl_Key_Weight: Read average weights per UNU_Key
 # ----------------------------------------------------------
 htbl_Key_Weight <- read.csv("htbl_Key_Weight.csv", quote = "\"",
-                              colClasses = c("character", "numeric", "character"))
+                              colClasses = c("character", "character", "numeric", "character"))
 
 # rename AverageWeight to Key_Av_W
-names(htbl_Key_Weight)[2] <- "Key_Av_W"
+htbl_Key_Weight <- plyr::rename(htbl_Key_Weight, c("AverageWeight"="Key_Av_W"))
 
+# Split table into one for general EU average weights and one for country specific weights
+
+selection <- which( htbl_Key_Weight$Country != "" )
+if (length(selection) > 0){
+  htbl_Key_Weight_country <- htbl_Key_Weight[selection, ]
+  htbl_Key_Weight_country <- plyr::rename(htbl_Key_Weight_country, c("Key_Av_W"="Key_Country_Av_W"))
+}
+
+# and remove the same rows from the orginal
+htbl_Key_Weight <- htbl_Key_Weight[-selection,]
+htbl_Key_Weight$Country <- NULL
+
+
+  
 
 # ----------------------------------------------------------
 # htbl_PCC_Match_Key: Read conversion table PCC to UNU_Keys
@@ -57,7 +71,7 @@ htbl_PCC_Match_Key <- read.csv("htbl_PCC_Match_Key.csv", quote = "\"",
 
 
 # ----------------------------------------------------------
-# htbl_PCC_Match_Key: Merge average weights per UNU_Key with PCC to UNUKeys conversion table
+# htbl_PCC_Match_Key: Merge average weights per UNU_Key with PCC to UNU_Keys conversion table
 # ----------------------------------------------------------
 htbl_PCC_Match_Key <- merge(htbl_PCC_Match_Key, htbl_Key_Weight, by=c("UNU_Key", "Year"), all.x = TRUE)
 
@@ -75,6 +89,23 @@ rm(htbl_PCC_Weight)
 tbl_PCC <- merge(tbl_PCC, htbl_PCC_Match_Key, by=c("PCC", "Year"), all.x = TRUE)
 rm(htbl_PCC_Match_Key)
 
+# ----------------------------------------------------------
+# tbl_PCC: Merge also the country specific UNU_Key average weights with prodcom data
+# ----------------------------------------------------------
+tbl_PCC <- merge(tbl_PCC, htbl_Key_Weight_country, by=c("UNU_Key", "Country", "Year"), all.x = TRUE)
+
+# restore column order
+sortorder_c <- c("PCC", "Year", "Country", "Value", "prodcom_units", "Unit", 
+                 "UNU_Key", "PCC_Av_W", "Key_Av_W", "Key_Country_Av_W")
+tbl_PCC <- tbl_PCC[, sortorder_c ]
+
+# Use the country specific UNU_Key average weight if available.
+selection <- which (!is.na(tbl_PCC$Key_Country_Av_W))
+if (length(selection) > 0){
+  tbl_PCC[selection, "Key_Av_W"] <- tbl_PCC[selection, "Key_Country_Av_W"]
+}
+
+tbl_PCC$Key_Country_Av_W <- NULL
 
 # ----------------------------------------------------------
 # tbl_PCC: Convert Prodcom values to weight
@@ -270,6 +301,27 @@ tbl_CN <- merge(tbl_CN, htbl_CN_Match_Key, by=c("CN", "Year"),
                   all.x = TRUE)
 rm(htbl_CN_Match_Key)
 rm(htbl_Key_Weight)
+
+
+# ----------------------------------------------------------
+# tbl_CN: Merge also the country specific UNU_Key average weights with CN data
+# ----------------------------------------------------------
+tbl_CN <- merge(tbl_CN, htbl_Key_Weight_country, by=c("UNU_Key", "Country", "Year"), all.x = TRUE)
+
+# restore column order
+sortorder_c <- c("CN", "Year", "Country", "Import_Quantity_Sup", "Import_Value", "Export_Quantity_Sup",
+                 "Export_Value", "Unit", "Import_Quantity_kg", "Export_Quantity_kg", "CN_Av_W",
+                 "UNU_Key", "Key_Av_W", "Key_Country_Av_W")
+tbl_CN <- tbl_CN[, sortorder_c ]
+
+# Use the country specific UNU_Key average weight if available.
+selection <- which (!is.na(tbl_CN$Key_Country_Av_W))
+if (length(selection) > 0){
+  tbl_CN[selection, "Key_Av_W"] <- tbl_CN[selection, "Key_Country_Av_W"]
+}
+
+tbl_CN$Key_Country_Av_W <- NULL
+
 
 
 # ----------------------------------------------------------

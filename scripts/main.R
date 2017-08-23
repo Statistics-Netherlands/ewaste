@@ -7,14 +7,14 @@
 #' This script should be sourced with Rscript.
 #'
 # Usage:
-# rscript.exe main.R [-[-countries|c] [<character>]] [-[-help|h]]
+# Rscript main.R [-[-countries|c] [<character>]] [-[-help|h]]
 #
 # For example:
 # --- run the analyses for all countries
-# rscript main.R
+# Rscript main.R
 #
 # --- run the analyses for Austria and Belgium alone
-# rscript.exe --countries=AUT;BEL
+# Rscript main.R --countries=AUT;BEL
  
 
 #------------------------------------
@@ -24,7 +24,6 @@ SCRIPT_PATH <- (Sys.getenv("EWASTE_SCRIPT_PATH"))
 #------------------------------------
 
 
-require(tcltk)
 require(getopt)
 
 
@@ -91,4 +90,3 @@ execute <- function(script) {
   source(file.path(SCRIPT_PATH, script))
 }
 crap <- lapply(scripts, execute)
-

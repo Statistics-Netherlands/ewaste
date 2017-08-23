@@ -18,37 +18,7 @@
 # PVpanels: Read raw version of POM data
 # ----------------------------------------------------------
 PVpanels <- read.csv("solar_panel_data.csv", quote = "\"",
-                     colClasses = c("character", "character", "numeric", "numeric"))
-
-# Convert country codes to uppercase.
-PVpanels$Country <- toupper(PVpanels$Country)
-
-# This data contains information about the stock of weight and number of units of PV panels.
-# Not what has been sold in the given year.
-# This can be calculated by substracting from every year the value of the previous year.
-
-# Sort dataframe rows by Country (A) and Year (D)
-sortorder <- order(PVpanels$Country, -rank(PVpanels$Year))
-PVpanels <- PVpanels[sortorder, ]
-
-# Calculate change per year
-rownumber <- 1:nrow(PVpanels)
-selection <- which(PVpanels[rownumber, "Country"] == PVpanels[rownumber + 1, "Country"])
-
-PVpanels[selection, "kg"] <- PVpanels[selection, "stock_kg"] - PVpanels[selection + 1, "stock_kg"]
-PVpanels[selection, "units"] <- PVpanels[selection, "stock_units"] - PVpanels[selection + 1, "stock_units"]
-
-# Remove negative sales.
-selection <- which(PVpanels$kg < 0)
-
-PVpanels[selection, "kg"] <- 0
-PVpanels[selection, "units"] <- 0
-
-PVpanels$stock_kg <- NULL
-PVpanels$stock_units <- NULL
-
-PVpanels$UNU_Key <- "0002"
-
+                     colClasses = c("character", "character", "character", "numeric", "numeric"))
 
 # merge with UNU_countries
 UNU_countries <- merge(UNU_countries, PVpanels,  by=c("UNU_Key", "Year", "Country"),  all.x = TRUE)
@@ -64,5 +34,5 @@ UNU_countries[selection, "flag"] <- 53
 UNU_countries$kg <- NULL
 UNU_countries$units <- NULL
 
-rm (PVpanels , rownumber, sortorder, selection)
+rm (selection)
 

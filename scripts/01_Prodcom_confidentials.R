@@ -11,7 +11,8 @@
 #                   with the following value labels:
 #                     0 - "Original Prodcom value"
 #                     1 - "Estimated with Export/Prodcom ratio of other years per country"
-#                     2 - "Estimated with Export/Prodcom ratio of similar countries per year")
+#                     2 - "Estimated with Export/Prodcom ratio of similar countries per year"
+#                     3 - "Estimated with lineair model original values per Country and PCC"
 #
 #   Author:         V.M. van Straalen - Statistics Netherlands
 #
@@ -23,7 +24,7 @@ setwd(DATA_PATH)
 options(stringsAsFactors=FALSE, warn=0, scipen=999, digits=4)
 
 require(plyr)
-
+require(reshape2)
 
 select_countries <- function(df) {
   return( df[which(df$Country %in% c(myoptions$countries, "EU28")),] )
@@ -298,9 +299,80 @@ tbl_data_pcc_conf$Export_Value_sum <- NULL
 tbl_data_pcc_conf$Stratum <- NULL
 tbl_data_pcc_conf$conf <- NULL
 
+
+
+# ----------------------------------------------------------
+#  tbl_data_pcc_conf: Replace estimated values that are deviating too much from trend from calculations 
+# ----------------------------------------------------------
+# This is similar to extrapolation approach 4 in script 03-i
+
+# Calculate the regression parameters for the trend for each specific country for only KPI.
+selection <- which ( tbl_data_pcc_conf$flag == 0 & tbl_data_pcc_conf$prodcom_units >= 0)
+tbl_data_pcc_conf_selection <- tbl_data_pcc_conf[selection, ]
+
+# Set an X before PCC, so they will be read as character after the melt process.
+tbl_data_pcc_conf_selection$XPCC <- paste0("X", tbl_data_pcc_conf_selection$PCC)
+
+# Make a variable for each PCC and Country combination.
+tbl_data_pcc_conf_selection$PCC_Country <- paste(tbl_data_pcc_conf_selection$PCC, tbl_data_pcc_conf_selection$Country,
+                                                 sep="_")
+
+# Change Year so we start set the first year in the calculations as 1.
+tbl_data_pcc_conf_selection$YearReformat <- as.numeric(tbl_data_pcc_conf_selection$Year) - 1994
+
+models_per_country_prodcom_units <- by(tbl_data_pcc_conf_selection, tbl_data_pcc_conf_selection$PCC_Country, 
+                             function(tbl_data_pcc_conf_selection) lm(tbl_data_pcc_conf_selection$prodcom_units ~ 
+                                                                    tbl_data_pcc_conf_selection$YearReformat) )
+models_per_country_prodcom_units <- sapply(models_per_country_prodcom_units, coefficients)
+
+# Reshape
+models_per_country_prodcom_units <- melt(models_per_country_prodcom_units)
+models_per_country_prodcom_units <- dcast(models_per_country_prodcom_units, Var2 ~ Var1, value.var = "value")
+
+models_per_country_prodcom_units <- plyr::rename(models_per_country_prodcom_units,c("Var2"="PCC_Country", "(Intercept)"="intercept", 
+                                                                "tbl_data_pcc_conf_selection$YearReformat"="slope"))
+
+# Add data from the last model per PCC and Country to tbl_data_pcc_conf
+tbl_data_pcc_conf$PCC_Country <- paste(tbl_data_pcc_conf$PCC, tbl_data_pcc_conf$Country, sep="_")
+tbl_data_pcc_conf <- merge(tbl_data_pcc_conf, models_per_country_prodcom_units, by="PCC_Country", all.x = TRUE)
+tbl_data_pcc_conf$PCC_Country <- NULL
+
+# Now extrapolations based on PCC by Year only can be calculated with the added model parameters.
+# So hear Year has to be changed too so we start set the first year in the calculations as 1 and the LatestYear as 10
+tbl_data_pcc_conf$YearReformat <- as.numeric(tbl_data_pcc_conf$Year) - 1994
+
+# Calculate model outcome for every record.
+tbl_data_pcc_conf$prodcom_units_model <- tbl_data_pcc_conf[, "YearReformat"] * tbl_data_pcc_conf[, "slope"] +
+  tbl_data_pcc_conf[, "intercept"]
+
+# Now check for the estimations done before, if they differ much from the model outcome.
+# If so they will be replaced by the model outcome
+
+# When difference is larger than 20% they will be changed.
+maxdif <- 0.2
+
+selection <- which( tbl_data_pcc_conf$flag > 0 & tbl_data_pcc_conf$prodcom_units_model > 0 &
+                      (abs(tbl_data_pcc_conf$prodcom_units - tbl_data_pcc_conf$prodcom_units_model) /
+                         tbl_data_pcc_conf$prodcom_units_model) > maxdif )
+
+tbl_data_pcc_conf[selection, "prodcom_units"] <- tbl_data_pcc_conf[selection, "prodcom_units_model"]
+tbl_data_pcc_conf[selection, "flag"] <- 3
+
+
+
+
+
 # ----------------------------------------------------------
 #  tbl_data_pcc_conf: Clean up and save result
 # ----------------------------------------------------------
+
+# clean-up
+tbl_data_pcc_conf$intercept <- NULL
+tbl_data_pcc_conf$slope <- NULL
+tbl_data_pcc_conf$YearReformat <- NULL
+tbl_data_pcc_conf$prodcom_units_model <- NULL
+rm(tbl_data_pcc_conf_selection)
+rm(models_per_country_prodcom_units)
 
 # Sort order for columns
 sortorder_c <- c(3, 2, 1, 4, 5, 6, 7)
